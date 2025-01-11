@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <!-- 1. 게임이름을 "세 자리 덧셈 뺄셈 세로셈"으로 변경 -->
+  <title>세 자리 덧셈 뺄셈 세로셈</title>
+  <style>
+      body {
+          margin: 0; 
+          padding: 0; 
+          font-family: 'Arial', sans-serif; 
+          background: #f0f0f0; 
+          color: #333; 
+          display: flex; 
+          flex-direction: column; 
+          align-items: center;
+      }
+
+      h1 {
+          text-align: center; 
+          margin-top: 20px;
+      }
+
+      .container {
+          width: 80%; 
+          max-width: 600px; 
+          margin: 20px auto; 
+          padding: 20px; 
+          background: #fff; 
+          border-radius: 10px;
+          box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      }
+
+      /* 초기 로딩 시 난이도 선택 화면은 보여주고 나머지는 숨김 */
+      .difficulty-selection {
+          display: block;
+      }
+      .game-screen, .result-screen {
+          display: none;
+      }
+
+      .difficulty-selection button, .game-screen button, .result-screen button {
+          margin: 5px; 
+          padding: 10px 20px; 
+          font-size: 16px; 
+          cursor: pointer;
+          border: none; 
+          border-radius: 5px;
+      }
+
+      .difficulty-selection button:hover, .game-screen button:hover, .result-screen button:hover {
+          background: #ddd;
+      }
+
+      .timer-bar {
+          width: 100%; 
+          background: #ddd; 
+          height: 20px; 
+          border-radius: 10px; 
+          overflow: hidden; 
+          margin-bottom: 10px;
+      }
+
+      .timer-bar-fill {
+          width: 100%; 
+          height: 100%; 
+          background: #76c7c0; 
+          transition: width 0.2s linear;
+      }
+
+      .stats {
+          display: flex; 
+          justify-content: space-between; 
+          align-items: center; 
+          margin-bottom: 10px;
+      }
+
+      .problem-container {
+          text-align: center; 
+          font-size: 24px; 
+          margin-bottom: 20px;
+      }
+
+      .vertical-calc {
+          display: inline-block; 
+          text-align: right; 
+          font-family: 'Courier New', monospace; 
+          line-height: 1.5;
+          font-size: 32px;
+          margin-top: 10px;
+      }
+
+      .vertical-calc .line {
+          border-bottom: 2px solid #333; 
+          margin-top: 5px; 
+          margin-bottom: 5px;
+      }
+
+      .answer-input {
+          width: 100px; 
+          font-size: 20px; 
+          text-align: center; 
+          padding: 5px; 
+          margin-bottom: 10px;
+      }
+
+      .chance, .score, .global-time {
+          font-size: 16px;
+      }
+
+      .popup {
+          position: fixed; 
+          top: 0; 
+          left:0; 
+          width:100%; 
+          height:100%; 
+          background: rgba(0,0,0,0.5); 
+          display:none; 
+          justify-content:center; 
+          align-items:center;
+          z-index: 9999;
+      }
+
+      .popup-content {
+          background:#fff; 
+          padding:20px; 
+          border-radius:10px; 
+          max-width:300px; 
+          text-align:center;
+      }
+
+      .popup-content button {
+          padding:5px 10px; 
+          border:none; 
+          background:#ddd; 
+          border-radius:5px; 
+          cursor:pointer;
+      }
+
+      .popup-content button:hover {
+          background:#ccc;
+      }
+
+      .vertical-calc span {
+          display: block;
+      }
+
+      .score, .chance, .global-time {
+          margin: 0 5px;
+      }
+
+      .reward-popup {
+          position: fixed; 
+          top:50%; 
+          left:50%; 
+          transform: translate(-50%, -50%); 
+          background:#fff; 
+          padding:20px; 
+          border-radius:10px; 
+          box-shadow:0 0 10px rgba(0,0,0,0.5); 
+          display:none; 
+          z-index:99999; 
+          text-align:center;
+      }
+
+      .reward-popup p {
+          margin:10px 0;
+      }
+
+      .reward-popup button {
+          padding:5px 10px;
+          border:none;
+          background:#ddd;
+          border-radius:5px;
+          cursor:pointer;
+      }
+
+      .reward-popup button:hover {
+          background:#ccc;
+      }
+
+  </style>
+</head>
+<body>
+    <!-- 1. 게임 이름 변경 -->
+    <h1>세 자리 덧셈 뺄셈 세로셈</h1>
+
+    <div class="container">
+        <!-- 난이도 선택화면 -->
+        <div class="difficulty-selection">
+            <!-- 2. 첫 화면에 이름을 입력할 수 있게 추가 -->
+            <h2>이름을 입력해주세요</h2>
+            <input type="text" id="player-name" placeholder="이름을 입력하세요" />
+            
+            <h2>난이도를 선택하세요</h2>
+            <button data-difficulty="최상">최상(20초)</button>
+            <button data-difficulty="상">상(30초)</button>
+            <button data-difficulty="중">중(40초)</button>
+            <button data-difficulty="하">하(시간 제한 없음)</button>
+        </div>
+
+        <!-- 게임 진행화면 -->
+        <div class="game-screen">
+            <div class="stats">
+                <div class="chance">남은 기회 : 3</div>
+                <div class="score">점수 : 0</div>
+                <div class="global-time">총 경과 시간 : 0초</div>
+            </div>
+            <div class="timer-bar">
+                <div class="timer-bar-fill"></div>
+            </div>
+            <div class="problem-container">
+                <div class="vertical-calc" id="problem-display">
+                </div>
+            </div>
+            <input type="text" class="answer-input" id="answer-input" placeholder="정답을 입력"/>
+            <div>
+                <button id="submit-answer">확인</button>
+            </div>
+        </div>
+
+        <!-- 결과 화면 -->
+        <div class="result-screen">
+            <h2>게임 종료</h2>
+            <p>최종 점수: <span id="final-score">0</span></p>
+            <!-- 4. 게임이 끝나면 "점수전송" 버튼 추가 -->
+            <button id="send-score-btn">점수 전송</button>
+            <!-- 5. 전송 성공/실패 메시지 표시 영역 -->
+            <p id="response" style="white-space:pre-wrap; margin:10px 0;"></p>
+            <button id="retry-btn">다시하기</button>
+        </div>
+    </div>
+
+    <!-- 오답 표시 팝업 -->
+    <div class="popup" id="solution-popup">
+        <div class="popup-content">
+            <h3>오답!</h3>
+            <p id="solution-text"></p>
+            <button id="close-solution">닫기</button>
+        </div>
+    </div>
+
+    <!-- 보상 팝업 -->
+    <div class="reward-popup" id="reward-popup">
+        <p id="reward-message"></p>
+        <button id="reward-close">닫기</button>
+    </div>
+
+    <script>
+    // ------------------------ 문제 데이터 ------------------------
+    // 전체 100문제 중, 앞 50문제는 덧셈, 뒤 50문제는 뺄셈
+    const additionProblems = [
+      {num1:345,num2:127,op:'+',answer:472}, {num1:958,num2:239,op:'+',answer:1197}, {num1:671,num2:594,op:'+',answer:1265},
+      {num1:784,num2:385,op:'+',answer:1169}, {num1:293,num2:417,op:'+',answer:710}, {num1:559,num2:131,op:'+',answer:690},
+      {num1:842,num2:466,op:'+',answer:1308}, {num1:713,num2:529,op:'+',answer:1242}, {num1:656,num2:191,op:'+',answer:847},
+      {num1:975,num2:252,op:'+',answer:1227}, {num1:434,num2:353,op:'+',answer:787}, {num1:129,num2:571,op:'+',answer:700},
+      {num1:994,num2:583,op:'+',answer:1577}, {num1:615,num2:179,op:'+',answer:794}, {num1:386,num2:947,op:'+',answer:1333},
+      {num1:523,num2:654,op:'+',answer:1177}, {num1:249,num2:582,op:'+',answer:831}, {num1:771,num2:649,op:'+',answer:1420},
+      {num1:939,num2:155,op:'+',answer:1094}, {num1:468,num2:317,op:'+',answer:785}, {num1:892,num2:464,op:'+',answer:1356},
+      {num1:621,num2:537,op:'+',answer:1158}, {num1:459,num2:382,op:'+',answer:841}, {num1:247,num2:558,op:'+',answer:805},
+      {num1:913,num2:277,op:'+',answer:1190}, {num1:335,num2:737,op:'+',answer:1072}, {num1:159,num2:684,op:'+',answer:843},
+      {num1:582,num2:693,op:'+',answer:1275}, {num1:749,num2:145,op:'+',answer:894}, {num1:824,num2:179,op:'+',answer:1003},
+      {num1:965,num2:333,op:'+',answer:1298}, {num1:448,num2:257,op:'+',answer:705}, {num1:136,num2:749,op:'+',answer:885},
+      {num1:931,num2:418,op:'+',answer:1349}, {num1:274,num2:669,op:'+',answer:943}, {num1:455,num2:171,op:'+',answer:626},
+      {num1:683,num2:927,op:'+',answer:1610}, {num1:799,num2:141,op:'+',answer:940}, {num1:398,num2:785,op:'+',answer:1183},
+      {num1:177,num2:539,op:'+',answer:716}, {num1:643,num2:159,op:'+',answer:802}, {num1:894,num2:773,op:'+',answer:1667},
+      {num1:485,num2:999,op:'+',answer:1484}, {num1:579,num2:414,op:'+',answer:993}, {num1:717,num2:286,op:'+',answer:1003},
+      {num1:933,num2:851,op:'+',answer:1784}, {num1:249,num2:999,op:'+',answer:1248}, {num1:678,num2:495,op:'+',answer:1173},
+      {num1:159,num2:363,op:'+',answer:522}, {num1:841,num2:497,op:'+',answer:1338}
+    ];
+
+    const subtractionProblems = [
+      {num1:963,num2:451,op:'-',answer:512}, {num1:875,num2:232,op:'-',answer:643}, {num1:594,num2:183,op:'-',answer:411},
+      {num1:927,num2:645,op:'-',answer:282}, {num1:836,num2:129,op:'-',answer:707}, {num1:749,num2:578,op:'-',answer:171},
+      {num1:994,num2:557,op:'-',answer:437}, {num1:683,num2:251,op:'-',answer:432}, {num1:819,num2:437,op:'-',answer:382},
+      {num1:968,num2:359,op:'-',answer:609}, {num1:745,num2:516,op:'-',answer:229}, {num1:924,num2:183,op:'-',answer:741},
+      {num1:857,num2:429,op:'-',answer:428}, {num1:631,num2:257,op:'-',answer:374}, {num1:993,num2:519,op:'-',answer:474},
+      {num1:772,num2:386,op:'-',answer:386}, {num1:849,num2:238,op:'-',answer:611}, {num1:935,num2:417,op:'-',answer:518},
+      {num1:764,num2:145,op:'-',answer:619}, {num1:642,num2:391,op:'-',answer:251}, {num1:973,num2:258,op:'-',answer:715},
+      {num1:895,num2:589,op:'-',answer:306}, {num1:764,num2:173,op:'-',answer:591}, {num1:918,num2:579,op:'-',answer:339},
+      {num1:851,num2:249,op:'-',answer:602}, {num1:997,num2:684,op:'-',answer:313}, {num1:652,num2:138,op:'-',answer:514},
+      {num1:843,num2:529,op:'-',answer:314}, {num1:935,num2:461,op:'-',answer:474}, {num1:789,num2:567,op:'-',answer:222},
+      {num1:961,num2:472,op:'-',answer:489}, {num1:874,num2:165,op:'-',answer:709}, {num1:938,num2:447,op:'-',answer:491},
+      {num1:716,num2:359,op:'-',answer:357}, {num1:543,num2:291,op:'-',answer:252}, {num1:622,num2:151,op:'-',answer:471},
+      {num1:945,num2:783,op:'-',answer:162}, {num1:897,num2:549,op:'-',answer:348}, {num1:733,num2:128,op:'-',answer:605},
+      {num1:661,num2:479,op:'-',answer:182}, {num1:954,num2:693,op:'-',answer:261}, {num1:742,num2:581,op:'-',answer:161},
+      {num1:963,num2:417,op:'-',answer:546}, {num1:851,num2:329,op:'-',answer:522}, {num1:637,num2:158,op:'-',answer:479},
+      {num1:794,num2:485,op:'-',answer:309}, {num1:586,num2:159,op:'-',answer:427}, {num1:941,num2:652,op:'-',answer:289},
+      {num1:874,num2:295,op:'-',answer:579}, {num1:629,num2:538,op:'-',answer:91}
+    ];
+
+    // ------------------------ 전역 변수 ------------------------
+    let currentDifficulty = null;
+    let timeLimitPerProblem = 0; 
+    let remainingChances = 3;
+    let score = 0;
+    let globalTime = 0;
+    let currentProblemIndex = 0;
+    let currentProblem = null;
+    let timerInterval = null;
+    let globalTimerInterval = null;
+    let timeLeft = 0; 
+    let gameOver = false;
+    // 입력한 이름 저장 변수
+    let playerName = "";
+
+    // ------------------------ 화면 요소 ------------------------
+    const difficultySelection = document.querySelector('.difficulty-selection');
+    const gameScreen = document.querySelector('.game-screen');
+    const resultScreen = document.querySelector('.result-screen');
+    const finalScoreSpan = document.getElementById('final-score');
+    const chanceDisplay = document.querySelector('.chance');
+    const scoreDisplay = document.querySelector('.score');
+    const globalTimeDisplay = document.querySelector('.global-time');
+    const problemDisplay = document.getElementById('problem-display');
+    const answerInput = document.getElementById('answer-input');
+    const timerBarFill = document.querySelector('.timer-bar-fill');
+    const submitAnswerBtn = document.getElementById('submit-answer');
+    const solutionPopup = document.getElementById('solution-popup');
+    const solutionText = document.getElementById('solution-text');
+    const closeSolutionBtn = document.getElementById('close-solution');
+    const rewardPopup = document.getElementById('reward-popup');
+    const rewardMessage = document.getElementById('reward-message');
+    const rewardCloseBtn = document.getElementById('reward-close');
+    const retryBtn = document.getElementById('retry-btn');
+    // "점수전송" 버튼
+    const sendScoreBtn = document.getElementById('send-score-btn');
+
+    // 난이도 버튼 클릭 시
+    document.querySelectorAll('.difficulty-selection button[data-difficulty]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+            // 2. 첫 화면에서 입력된 이름 가져오기
+            playerName = document.getElementById('player-name').value.trim();
+
+            currentDifficulty = btn.getAttribute('data-difficulty');
+            if(currentDifficulty === '최상') timeLimitPerProblem = 20;
+            else if(currentDifficulty === '상') timeLimitPerProblem = 30;
+            else if(currentDifficulty === '중') timeLimitPerProblem = 40;
+            else timeLimitPerProblem = 0; 
+            startGame();
+        });
+    });
+
+    // 게임 시작
+    function startGame(){
+        difficultySelection.style.display = 'none';
+        gameScreen.style.display = 'block';
+        remainingChances = 3;
+        score = 0;
+        globalTime = 0;
+        currentProblemIndex = 0;
+        gameOver = false;
+        chanceDisplay.textContent = "남은 기회 : " + remainingChances;
+        scoreDisplay.textContent = "점수 : " + score;
+        globalTimeDisplay.textContent = "총 경과 시간 : " + globalTime+"초";
+        
+        // 전체 진행 시간 측정
+        globalTimerInterval = setInterval(()=>{
+            globalTime++;
+            globalTimeDisplay.textContent = "총 경과 시간 : " + globalTime+"초";
+        },1000);
+
+        loadProblem();
+    }
+
+    // 문제 불러오기
+    function loadProblem(){
+        if(gameOver) return;
+        if(currentProblemIndex < 100) {
+            // 0~99 인덱스에서 짝수는 덧셈, 홀수는 뺄셈
+            if(currentProblemIndex % 2 === 0) {
+                // 짝수: 덧셈문제
+                let addIndex = currentProblemIndex/2; 
+                currentProblem = additionProblems[addIndex];
+            } else {
+                // 홀수: 뺄셈문제
+                let subIndex = (currentProblemIndex - 1)/2;
+                currentProblem = subtractionProblems[subIndex];
+            }
+        } else {
+            // 100문제 넘어가면 랜덤 생성
+            currentProblem = generateRandomProblem();
+        }
+
+        displayProblem(currentProblem);
+
+        // 시간 제한이 있는 난이도
+        if(timeLimitPerProblem > 0) {
+            timeLeft = timeLimitPerProblem;
+            updateTimerBar();
+            clearInterval(timerInterval);
+            timerInterval = setInterval(()=>{
+                timeLeft -= 0.2;
+                if(timeLeft <= 0){
+                    clearInterval(timerInterval);
+                    onTimeUp();
+                }
+                updateTimerBar();
+            },200);
+        } else {
+            // 하 난이도(시간 제한 없음)
+            timerBarFill.style.width = '100%';
+        }
+
+        checkRandomReward();
+    }
+
+    // 100문제 초과 시 랜덤으로 생성하는 문제
+    function generateRandomProblem(){
+        function randomNonZeroUnit(){
+            return Math.floor(Math.random()*9)+1; 
+        }
+        function randomThreeDigit(){
+            let h = Math.floor(Math.random()*9)+1; 
+            let t = Math.floor(Math.random()*10);  
+            let u = randomNonZeroUnit(); 
+            return h*100 + t*10 + u;
+        }
+        let num1 = randomThreeDigit();
+        let num2 = randomThreeDigit();
+        let op = Math.random()<0.5?'+':'-';
+        let answer = (op==='+')? (num1+num2) : (num1-num2);
+        // 음수 결과 방지 (num1 < num2일 경우 위치 바꿔줌)
+        if(op==='-' && num1<num2){
+            let temp = num1; 
+            num1 = num2; 
+            num2 = temp;
+            answer = num1 - num2;
+        }
+        return {num1:num1, num2:num2, op:op, answer:answer};
+    }
+
+    // 문제 화면에 표시
+    function displayProblem(p){
+        problemDisplay.innerHTML = '';
+        let str1 = p.num1.toString();
+        let str2 = p.num2.toString();
+        let maxLen = Math.max(str1.length, str2.length);
+        let line1 = str1.padStart(maxLen,' ');
+        let line2 = str2.padStart(maxLen,' ');
+
+        let html = `<span>${line1}</span><span>${p.op}${line2}</span><div class="line"></div>`;
+        problemDisplay.innerHTML = html;
+        answerInput.value = '';
+        answerInput.focus();
+    }
+
+    // 정답 체크
+    submitAnswerBtn.addEventListener('click', checkAnswer);
+    answerInput.addEventListener('keyup', (e)=>{
+        if(e.key === 'Enter') checkAnswer();
+    });
+
+    function checkAnswer(){
+        if(gameOver) return;
+        let userAnswer = parseInt(answerInput.value.trim(),10);
+        if(isNaN(userAnswer)) return;
+        if(userAnswer === currentProblem.answer){
+            addScore();
+            nextProblem();
+        } else {
+            wrongAnswer();
+        }
+    }
+
+    // 점수 추가
+    function addScore(){
+        let points = 0;
+        if(currentDifficulty==='최상') points=20;
+        else if(currentDifficulty==='상') points=15;
+        else if(currentDifficulty==='중') points=13;
+        else points=10;
+        score += points;
+        scoreDisplay.textContent = "점수 : " + score;
+    }
+
+    // 다음 문제
+    function nextProblem(){
+        currentProblemIndex++;
+        if(!gameOver) {
+            loadProblem();
+        }
+    }
+
+    // 오답 처리
+    function wrongAnswer(){
+        showSolutionPopup();
+        remainingChances--;
+        if(remainingChances<=0){
+            endGame();
+        } else {
+            chanceDisplay.textContent = "남은 기회 : " + remainingChances;
+            nextProblem();
+        }
+    }
+
+    // 오답 팝업
+    function showSolutionPopup(){
+        solutionText.textContent = 
+          "정답: " + currentProblem.num1 + " " + currentProblem.op + " " + currentProblem.num2 + " = " + currentProblem.answer;
+        solutionPopup.style.display = 'flex';
+    }
+
+    closeSolutionBtn.addEventListener('click', ()=>{
+        solutionPopup.style.display = 'none';
+        answerInput.focus();
+    });
+
+    // 시간 초과 처리
+    function onTimeUp(){
+        if(gameOver) return;
+        remainingChances--;
+        if(remainingChances<=0){
+            endGame();
+        } else {
+            chanceDisplay.textContent = "남은 기회 : " + remainingChances;
+            nextProblem();
+        }
+    }
+
+    // 타이머 바 업데이트
+    function updateTimerBar(){
+        if(timeLimitPerProblem>0){
+            let percentage = (timeLeft/timeLimitPerProblem)*100;
+            if(percentage<0) percentage=0;
+            timerBarFill.style.width = percentage+"%";
+        } else {
+            timerBarFill.style.width = '100%'; 
+        }
+    }
+
+    // 게임 종료
+    function endGame(){
+        gameOver = true;
+        clearInterval(timerInterval);
+        clearInterval(globalTimerInterval);
+        gameScreen.style.display = 'none';
+        resultScreen.style.display = 'block';
+        finalScoreSpan.textContent = score;
+    }
+
+    // 다시하기 버튼
+    retryBtn.addEventListener('click', ()=>{
+        resultScreen.style.display = 'none';
+        difficultySelection.style.display = 'block';
+    });
+
+    // 보상 관련
+    function checkRandomReward(){
+        let r = Math.random();
+        if(r < 0.0001){
+            showRewardPopup("축하합니다! 5000원 상품권 당첨!");
+        } else if(r < 0.001){
+            showRewardPopup("축하합니다! 3000원 상품권 당첨!");
+        } else if(r < 0.003){
+            showRewardPopup("축하합니다! 1회 면제권 당첨! (자동 사용)");
+            remainingChances++;
+            chanceDisplay.textContent = "남은 기회 : " + remainingChances;
+        }
+    }
+
+    function showRewardPopup(msg){
+        rewardMessage.textContent = msg;
+        rewardPopup.style.display = 'block';
+    }
+
+    rewardCloseBtn.addEventListener('click', ()=>{
+        rewardPopup.style.display='none';
+        answerInput.focus();
+    });
+
+    // ---------------------------------------------------------
+    // 3~5. 서버로 데이터 전송 함수 (아래 코드를 삽입하여 전송 기능 추가)
+    // ---------------------------------------------------------
+    function saveData(game, name, score, elapsedTime) {
+        const FUNCTION_URL = "https://us-central1-record-f420d.cloudfunctions.net/report";
+
+        const requestData = {
+            game,
+            name,
+            score: parseInt(score, 10),
+            elapsedTime: parseInt(elapsedTime, 10)
+        };
+
+        try {
+            const response = fetch(FUNCTION_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            const responseData = response.json();
+
+            if (response.ok) {
+                document.getElementById('response').innerText = 
+                    `성공: ${JSON.stringify(responseData, null, 2)}`;
+            } else {
+                document.getElementById('response').innerText = 
+                    `오류: ${JSON.stringify(responseData, null, 2)}`;
+            }
+        } catch (error) {
+            console.error('요청 실패:', error);
+            document.getElementById('response').innerText = 
+                `네트워크 오류: ${error.message}`;
+        }
+    }
+
+    // "점수전송" 버튼 클릭 시 서버로 전송
+    sendScoreBtn.addEventListener('click', () => {
+      saveData("세 자리 덧셈 뺄셈 세로셈", playerName, score, globalTime);
+    });
+    </script>
+</body>
+</html>
